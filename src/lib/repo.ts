@@ -22,7 +22,7 @@ import { buildSeed, type Dataset } from "./seed";
 import { isDemo, DEMO_TRAINER_ID } from "./config";
 import { createClient as createSupabaseServer } from "./supabase/server";
 import { newToken } from "./token";
-import { AM_SLOTS, PM_SLOTS } from "./theme";
+import { splitSlots, DEFAULT_SLOTS } from "./theme";
 
 // Postgres `time` columns come back as "HH:MM:SS"; the app compares against the
 // "HH:MM" slot grid. Normalise on the way out of Supabase.
@@ -53,6 +53,7 @@ function assembleToday(
   summaries: ClientSummary[],
   sessionsByClient: Map<string, Session[]>,
   dayISO: string,
+  slots: string[],
 ): TodayLedger {
   const weekday = new Date(dayISO + "T00:00:00").getDay();
   let unconfirmed = 0;
@@ -90,10 +91,15 @@ function assembleToday(
   const entryFor = (slot: string): TodaySlotEntry =>
     placed.get(slot) ?? { slot, client: null, status: null, seq: null, rescheduleRequested: false };
 
+  // Show the trainer's configured slots, plus any off-grid slot a client
+  // actually sits in (e.g. a reschedule), so nobody silently disappears.
+  const allSlots = Array.from(new Set([...slots, ...placed.keys()])).sort();
+  const { morning, evening } = splitSlots(allSlots);
+
   return {
     dateISO: dayISO,
-    morning: AM_SLOTS.map(entryFor),
-    evening: PM_SLOTS.map(entryFor),
+    morning: morning.map(entryFor),
+    evening: evening.map(entryFor),
     unconfirmedCount: unconfirmed,
   };
 }
@@ -181,7 +187,7 @@ class DemoRepo implements Repo {
       arr.push(s);
       sessionsByClient.set(s.client_id, arr);
     }
-    return assembleToday(await this.listClients(), sessionsByClient, dateISO);
+    return assembleToday(await this.listClients(), sessionsByClient, dateISO, d.trainer.slots);
   }
   async getSessionDates(fromISO: string, toISO: string) {
     const set = new Set<string>();
@@ -257,7 +263,13 @@ class SupabaseRepo implements Repo {
 
   async getTrainer() {
     const { data } = await this.db.from("trainer_profiles").select("*").eq("id", this.trainerId).single();
-    return data as Trainer;
+    const t = data as Trainer;
+    // Defensive: tolerate the slots migration not being run yet.
+    return {
+      ...t,
+      slots: t.slots?.length ? t.slots : DEFAULT_SLOTS,
+      session_minutes: t.session_minutes || 60,
+    };
   }
   async updateTrainer(patch: Partial<Trainer>) {
     const { data } = await this.db
@@ -338,7 +350,10 @@ class SupabaseRepo implements Repo {
     return clientId;
   }
   async getLedger(dateISO: string) {
-    const { clients, packs, sessions } = await this.fetchAll();
+    const [{ clients, packs, sessions }, trainer] = await Promise.all([
+      this.fetchAll(),
+      this.getTrainer(),
+    ]);
     const summaries = clients
       .filter((c) => c.active)
       .map((c) =>
@@ -354,7 +369,7 @@ class SupabaseRepo implements Repo {
       arr.push(s);
       byClient.set(s.client_id, arr);
     }
-    return assembleToday(summaries, byClient, dateISO);
+    return assembleToday(summaries, byClient, dateISO, trainer.slots);
   }
   async getSessionDates(fromISO: string, toISO: string) {
     const { data } = await this.db

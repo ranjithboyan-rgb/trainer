@@ -42,6 +42,7 @@ export default async function TodayPage({
       selectedISO={selected}
       todayISO={today}
       activeDates={activeDates}
+      sessionMinutes={trainer.session_minutes}
     />
   );
 }

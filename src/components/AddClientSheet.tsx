@@ -3,19 +3,22 @@
 import { useState, useTransition } from "react";
 import { X, Minus, Plus } from "lucide-react";
 import { Label, PrimaryButton } from "@/components/ui";
-import { T, NUM, FONT, DAY_SHORT, AM_SLOTS, PM_SLOTS, fmtSlot } from "@/lib/theme";
+import { T, NUM, FONT, DAY_SHORT, fmtSlot, splitSlots } from "@/lib/theme";
 import { createClientAction } from "@/app/actions";
 import { normalizePhone } from "@/lib/wa";
 
 export function AddClientSheet({
   packSize,
+  slots,
   onClose,
   onCreated,
 }: {
   packSize: number;
+  slots: string[];
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
+  const { morning, evening } = splitSlots(slots);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [days, setDays] = useState<number[]>([1, 3, 5]);
@@ -181,18 +184,26 @@ export function AddClientSheet({
           })}
         </div>
 
-        <Label style={{ margin: "14px 0 6px" }}>Morning slots</Label>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {AM_SLOTS.map((s) => (
-            <SlotChip key={s} s={s} />
-          ))}
-        </div>
-        <Label style={{ margin: "12px 0 6px" }}>Evening slots</Label>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {PM_SLOTS.map((s) => (
-            <SlotChip key={s} s={s} />
-          ))}
-        </div>
+        {morning.length > 0 && (
+          <>
+            <Label style={{ margin: "14px 0 6px" }}>Morning slots</Label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {morning.map((s) => (
+                <SlotChip key={s} s={s} />
+              ))}
+            </div>
+          </>
+        )}
+        {evening.length > 0 && (
+          <>
+            <Label style={{ margin: "12px 0 6px" }}>Evening slots</Label>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {evening.map((s) => (
+                <SlotChip key={s} s={s} />
+              ))}
+            </div>
+          </>
+        )}
 
         <Label style={{ margin: "16px 0 6px" }}>
           Sessions already done in current pack

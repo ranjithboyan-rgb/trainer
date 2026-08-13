@@ -7,5 +7,11 @@ export default async function ClientsPage() {
   const repo = await getRepo();
   if (!repo) return null;
   const [clients, trainer] = await Promise.all([repo.listClients(), repo.getTrainer()]);
-  return <ClientsView clients={clients} packSize={trainer.sessions_per_pack} />;
+  return (
+    <ClientsView
+      clients={clients}
+      packSize={trainer.sessions_per_pack}
+      slots={trainer.slots}
+    />
+  );
 }

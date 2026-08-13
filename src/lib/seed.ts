@@ -5,6 +5,7 @@
 
 import type { Client, Pack, Session, Trainer } from "./types";
 import { DEMO_TRAINER_ID } from "./config";
+import { DEFAULT_SLOTS } from "./theme";
 
 let counter = 0;
 const id = (p: string) => `${p}-${(++counter).toString(36).padStart(4, "0")}`;
@@ -58,6 +59,8 @@ export function buildSeed(now = new Date()): Dataset {
     post_session_feedback: true,
     late_cancel_burns: true,
     sessions_per_pack: 12,
+    slots: DEFAULT_SLOTS,
+    session_minutes: 60,
     wa_phone_number_id: null,
     wa_connected: false,
   };

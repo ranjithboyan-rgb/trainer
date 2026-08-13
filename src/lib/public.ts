@@ -18,14 +18,13 @@ import {
   todayISO,
   TERMINAL,
 } from "./domain";
-import { fmtSlot, AM_SLOTS, PM_SLOTS } from "./theme";
+import { fmtSlot } from "./theme";
 import { relativeDay } from "./templates";
 import { isDemo } from "./config";
 import { buildSeed, type Dataset } from "./seed";
 import { createAdminClient } from "./supabase/admin";
 import type { DayOptions } from "./types";
 
-const GRID = [...AM_SLOTS, ...PM_SLOTS];
 const RESCHEDULE_WINDOW_DAYS = 7;
 
 // ── Shared view/logic ───────────────────────────────────────────────────────
@@ -115,17 +114,19 @@ function rescheduleWindowEnd(
 }
 
 // Open slots grouped by day, from tomorrow up to (but not including) untilISO.
+// `grid` is the trainer's configured slot times.
 function computeDayOptions(
   roster: Client[],
   sessionsByClient: Map<string, Session[]>,
   fromISO: string,
   untilISO: string,
+  grid: string[],
 ): DayOptions[] {
   const out: DayOptions[] = [];
   for (let i = 1; i <= 21; i++) {
     const d = shiftISO(fromISO, i);
     if (d >= untilISO) break;
-    const slots = GRID.filter((slot) => !slotOccupied(roster, sessionsByClient, d, slot));
+    const slots = grid.filter((slot) => !slotOccupied(roster, sessionsByClient, d, slot));
     out.push({ dateISO: d, slots });
   }
   return out;
@@ -136,11 +137,12 @@ function isOptionOpen(
   sessionsByClient: Map<string, Session[]>,
   fromISO: string,
   untilISO: string,
+  grid: string[],
   dateISO: string,
   slot: string,
 ): boolean {
   if (dateISO >= untilISO) return false;
-  const day = computeDayOptions(roster, sessionsByClient, fromISO, untilISO).find(
+  const day = computeDayOptions(roster, sessionsByClient, fromISO, untilISO, grid).find(
     (o) => o.dateISO === dateISO,
   );
   return !!day && day.slots.includes(slot);
@@ -368,7 +370,7 @@ export async function getRescheduleOptions(token: string): Promise<DayOptions[]>
   const ctx = isDemo ? demoLookup(token) : await adminLookup(token);
   if (!ctx) return [];
   const until = rescheduleWindowEnd(ctx.client, ctx.packs, ctx.sessions, day);
-  return computeDayOptions(ctx.roster, ctx.rosterSessions, day, until);
+  return computeDayOptions(ctx.roster, ctx.rosterSessions, day, until, ctx.trainer.slots);
 }
 
 // Move the client's next session to (dateISO, slot). Marks the old instance
@@ -436,7 +438,7 @@ export async function applyReschedule(
     const oldDate = nextSessionDate(ctx.client, ctx.sessions, day);
     if (!oldDate) return { ok: false, view: view() };
     const until = rescheduleWindowEnd(ctx.client, ctx.packs, ctx.sessions, day);
-    if (!isOptionOpen(ctx.roster, ctx.rosterSessions, day, until, dateISO, slot)) {
+    if (!isOptionOpen(ctx.roster, ctx.rosterSessions, day, until, ctx.trainer.slots, dateISO, slot)) {
       return { ok: false, view: view(), message: "That time is no longer available." };
     }
 
@@ -462,7 +464,7 @@ export async function applyReschedule(
   const oldDate = nextSessionDate(ctx.client, ctx.sessions, day);
   if (!oldDate) return { ok: false, view: view() };
   const until = rescheduleWindowEnd(ctx.client, ctx.packs, ctx.sessions, day);
-  if (!isOptionOpen(ctx.roster, ctx.rosterSessions, day, until, dateISO, slot)) {
+  if (!isOptionOpen(ctx.roster, ctx.rosterSessions, day, until, ctx.trainer.slots, dateISO, slot)) {
     return { ok: false, view: view(), message: "That time is no longer available." };
   }
 

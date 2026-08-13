@@ -27,9 +27,39 @@ export const NUM: React.CSSProperties = {
 export const DAY_SHORT = ["S", "M", "T", "W", "T", "F", "S"];
 export const DAY_ABBR = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// Slot grid — source of truth for the reschedule offers later (M3).
+// Default slot grid for a brand-new trainer; each trainer edits their real
+// start times in Settings (trainer.slots), and that list is the source of truth
+// for the Today ledger, add-client, and reschedule offers.
 export const AM_SLOTS = ["06:00", "07:00", "08:00", "09:00", "10:00"];
 export const PM_SLOTS = ["17:00", "18:00", "19:00", "20:00", "21:00"];
+export const DEFAULT_SLOTS = [...AM_SLOTS, ...PM_SLOTS];
+
+// Split a slot list into morning (before noon) and evening groups, sorted.
+export function splitSlots(slots: string[]): { morning: string[]; evening: string[] } {
+  const sorted = [...slots].sort();
+  return {
+    morning: sorted.filter((s) => Number(s.slice(0, 2)) < 12),
+    evening: sorted.filter((s) => Number(s.slice(0, 2)) >= 12),
+  };
+}
+
+// "06:00" + 60 -> "6:00 – 7:00 AM"
+export function slotRange(start: string, minutes: number): string {
+  const [h, m] = start.split(":").map(Number);
+  const endTotal = h * 60 + m + minutes;
+  const eh = Math.floor(endTotal / 60) % 24;
+  const em = endTotal % 60;
+  const end = `${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}`;
+  // Share the AM/PM suffix when both ends fall in the same half.
+  const sameHalf = h < 12 === eh < 12;
+  const startTxt = sameHalf ? fmtSlot(start).replace(/ [AP]M$/, "") : fmtSlot(start);
+  return `${startTxt} – ${fmtSlot(end)}`;
+}
+
+// Compact range for tight rows (no AM/PM — morning/evening grouping implies it).
+export function slotRangeShort(start: string, minutes: number): string {
+  return slotRange(start, minutes).replace(/ ?[AP]M/g, "");
+}
 
 // "06:00" -> "6:00 AM"
 export function fmtSlot(hhmm: string): string {

@@ -1,11 +1,37 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { X, Plus } from "lucide-react";
 import { Card, Dot, Label, PageHeader, Toggle } from "@/components/ui";
-import { T, NUM, fmtSlot } from "@/lib/theme";
+import { T, NUM, FONT, fmtSlot, slotRange } from "@/lib/theme";
 import { updateTrainerAction, signOutAction } from "@/app/actions";
 import { EditProfileSheet } from "@/components/EditProfileSheet";
 import type { Trainer } from "@/lib/types";
+
+function StepBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        border: `1px solid ${T.border}`,
+        background: "#fff",
+        color: T.ink,
+        fontSize: 17,
+        fontWeight: 700,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        lineHeight: 1,
+      }}
+    >
+      {children}
+    </button>
+  );
+}
 
 function Row({
   label,
@@ -51,12 +77,33 @@ export function SettingsView({
   const [feedback, setFeedback] = useState(trainer.post_session_feedback);
   const [lateCancel, setLateCancel] = useState(trainer.late_cancel_burns);
   const [editing, setEditing] = useState(false);
+  const [slots, setSlots] = useState<string[]>([...trainer.slots].sort());
+  const [sessionMins, setSessionMins] = useState(trainer.session_minutes);
+  const [newSlot, setNewSlot] = useState("");
   const [, startTransition] = useTransition();
 
   const persist = (patch: Partial<Trainer>) =>
     startTransition(() => {
       void updateTrainerAction(patch);
     });
+
+  const setLength = (mins: number) => {
+    const clamped = Math.min(180, Math.max(15, mins));
+    setSessionMins(clamped);
+    persist({ session_minutes: clamped });
+  };
+  const addSlot = () => {
+    if (!/^\d{2}:\d{2}$/.test(newSlot) || slots.includes(newSlot)) return;
+    const next = [...slots, newSlot].sort();
+    setSlots(next);
+    setNewSlot("");
+    persist({ slots: next });
+  };
+  const removeSlot = (s: string) => {
+    const next = slots.filter((x) => x !== s);
+    setSlots(next);
+    persist({ slots: next });
+  };
 
   const initials = trainer.display_name.slice(0, 1).toUpperCase();
 
@@ -168,6 +215,104 @@ export function SettingsView({
               />
             }
           />
+        </Card>
+
+        {/* Your slots — the source of truth for Today, add-client, reschedule */}
+        <Card>
+          <Label style={{ marginBottom: 8 }}>Your slots</Label>
+          <Row
+            label="Session length"
+            right={
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <StepBtn onClick={() => setLength(sessionMins - 15)}>−</StepBtn>
+                <span
+                  style={{ fontSize: 15, fontWeight: 800, color: T.ink, minWidth: 58, textAlign: "center", ...NUM }}
+                >
+                  {sessionMins} min
+                </span>
+                <StepBtn onClick={() => setLength(sessionMins + 15)}>+</StepBtn>
+              </div>
+            }
+          />
+          {slots.length === 0 && (
+            <div style={{ fontSize: 13.5, color: T.faint, padding: "12px 0 4px" }}>
+              No slots yet — add your start times below.
+            </div>
+          )}
+          {slots.map((s, i) => (
+            <div
+              key={s}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 0",
+                borderTop: i === 0 ? `1px solid ${T.rule}` : `1px solid ${T.rule}`,
+              }}
+            >
+              <span style={{ fontSize: 15, fontWeight: 700, color: T.ink, ...NUM }}>
+                {slotRange(s, sessionMins)}
+              </span>
+              <button
+                onClick={() => removeSlot(s)}
+                aria-label={`Remove ${s}`}
+                style={{
+                  border: "none",
+                  background: T.rule,
+                  borderRadius: 13,
+                  width: 26,
+                  height: 26,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: T.gray,
+                }}
+              >
+                <X size={13} />
+              </button>
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+            <input
+              type="time"
+              value={newSlot}
+              onChange={(e) => setNewSlot(e.target.value)}
+              style={{
+                flex: 1,
+                border: `1px solid ${T.border}`,
+                borderRadius: 12,
+                padding: "11px 13px",
+                fontSize: 15,
+                fontFamily: FONT,
+                outline: "none",
+                ...NUM,
+              }}
+            />
+            <button
+              onClick={addSlot}
+              disabled={!/^\d{2}:\d{2}$/.test(newSlot) || slots.includes(newSlot)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "0 16px",
+                borderRadius: 12,
+                border: "none",
+                background: /^\d{2}:\d{2}$/.test(newSlot) && !slots.includes(newSlot) ? T.ink : T.rule,
+                color: /^\d{2}:\d{2}$/.test(newSlot) && !slots.includes(newSlot) ? "#fff" : T.faint,
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: FONT,
+              }}
+            >
+              <Plus size={15} /> Add
+            </button>
+          </div>
+          <div style={{ fontSize: 12, color: T.faint, marginTop: 8, lineHeight: 1.5 }}>
+            List only the times you actually start — a break is just a gap.
+          </div>
         </Card>
 
         <Card>

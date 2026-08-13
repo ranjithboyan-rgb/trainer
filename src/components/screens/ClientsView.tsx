@@ -11,9 +11,11 @@ import type { ClientSummary } from "@/lib/types";
 export function ClientsView({
   clients,
   packSize,
+  slots,
 }: {
   clients: ClientSummary[];
   packSize: number;
+  slots: string[];
 }) {
   const [adding, setAdding] = useState(false);
   const router = useRouter();
@@ -82,6 +84,7 @@ export function ClientsView({
       {adding && (
         <AddClientSheet
           packSize={packSize}
+          slots={slots}
           onClose={() => setAdding(false)}
           onCreated={(id) => {
             setAdding(false);

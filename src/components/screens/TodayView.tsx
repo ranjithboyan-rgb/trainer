@@ -6,7 +6,7 @@ import { MessageCircle, CalendarDays, ArrowRight } from "lucide-react";
 import { Card, Dot, Label } from "@/components/ui";
 import { DateStrip } from "@/components/DateStrip";
 import { CalendarModal } from "@/components/CalendarModal";
-import { T, NUM, fmtSlotShort } from "@/lib/theme";
+import { T, NUM, slotRangeShort } from "@/lib/theme";
 import type { SessionStatus, TodayLedger, TodaySlotEntry } from "@/lib/types";
 
 type Relation = "past" | "today" | "future";
@@ -34,7 +34,17 @@ function statusMeta(status: SessionStatus | null, rel: Relation): [string, strin
   }
 }
 
-function Row({ entry, first, rel }: { entry: TodaySlotEntry; first: boolean; rel: Relation }) {
+function Row({
+  entry,
+  first,
+  rel,
+  sessionMinutes,
+}: {
+  entry: TodaySlotEntry;
+  first: boolean;
+  rel: Relation;
+  sessionMinutes: number;
+}) {
   const c = entry.client;
   const meta = c
     ? entry.rescheduleRequested
@@ -51,9 +61,9 @@ function Row({ entry, first, rel }: { entry: TodaySlotEntry; first: boolean; rel
       }}
     >
       <span
-        style={{ width: 58, fontSize: 13.5, fontWeight: 700, color: c ? T.ink : T.faint, ...NUM }}
+        style={{ width: 88, fontSize: 12.5, fontWeight: 700, color: c ? T.ink : T.faint, ...NUM }}
       >
-        {fmtSlotShort(entry.slot)}
+        {slotRangeShort(entry.slot, sessionMinutes)}
       </span>
       {c ? (
         <>
@@ -111,12 +121,14 @@ export function TodayView({
   selectedISO,
   todayISO,
   activeDates,
+  sessionMinutes,
 }: {
   ledger: TodayLedger;
   confirmTime: string;
   selectedISO: string;
   todayISO: string;
   activeDates: string[];
+  sessionMinutes: number;
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const isToday = selectedISO === todayISO;
@@ -173,18 +185,22 @@ export function TodayView({
       <DateStrip selectedISO={selectedISO} todayISO={todayISO} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 4 }}>
-        <Card>
-          <Label style={{ marginBottom: 4 }}>Morning slots</Label>
-          {ledger.morning.map((e, i) => (
-            <Row key={e.slot} entry={e} first={i === 0} rel={rel} />
-          ))}
-        </Card>
-        <Card>
-          <Label style={{ marginBottom: 4 }}>Evening slots</Label>
-          {ledger.evening.map((e, i) => (
-            <Row key={e.slot} entry={e} first={i === 0} rel={rel} />
-          ))}
-        </Card>
+        {ledger.morning.length > 0 && (
+          <Card>
+            <Label style={{ marginBottom: 4 }}>Morning slots</Label>
+            {ledger.morning.map((e, i) => (
+              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} />
+            ))}
+          </Card>
+        )}
+        {ledger.evening.length > 0 && (
+          <Card>
+            <Label style={{ marginBottom: 4 }}>Evening slots</Label>
+            {ledger.evening.map((e, i) => (
+              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} />
+            ))}
+          </Card>
+        )}
         {isToday && (
           <Link href="/today/confirmations" style={{ textDecoration: "none" }}>
             <Card>

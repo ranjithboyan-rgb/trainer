@@ -17,6 +17,8 @@ export interface Trainer {
   post_session_feedback: boolean;
   late_cancel_burns: boolean;
   sessions_per_pack: number;
+  slots: string[]; // the trainer's real start times ("HH:MM"), source of truth
+  session_minutes: number; // session length, for "10:00 – 11:00" ranges
   wa_phone_number_id: string | null;
   wa_connected: boolean;
 }

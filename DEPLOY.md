@@ -22,6 +22,13 @@ so nothing collides with the Personal app.
 That creates `trainer_profiles`, `trainer_clients`, `trainer_packs`,
 `trainer_sessions`, `trainer_messages` with RLS. Safe to re-run (idempotent).
 
+**Already deployed 0001 earlier? Also run the newer migrations** in the SQL
+editor (each is idempotent, `add column if not exists`):
+- [`0002_custom_slots.sql`](supabase/migrations/0002_custom_slots.sql) — the
+  editable slot grid (`slots`, `session_minutes`). Existing trainer rows get the
+  default slot list automatically. (The app tolerates this not being run yet for
+  reads, but you must run it before editing slots.)
+
 ## 2. Auth — allow the new domain
 
 Supabase → **Authentication → URL Configuration**:
