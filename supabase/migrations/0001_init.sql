@@ -71,6 +71,7 @@ create table if not exists public.trainer_sessions (
   counted              boolean not null default false,
   note                 text,
   reschedule_requested boolean not null default false,
+  delay_minutes        int  not null default 0,
   status_changed_at    timestamptz not null default now(),
   created_at           timestamptz not null default now()
 );

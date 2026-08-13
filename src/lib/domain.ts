@@ -187,6 +187,8 @@ export function buildClientDetail(
       scheduled: scheduledToday,
       status: todayRow?.status ?? null,
       logged,
+      delayMinutes: todayRow?.delay_minutes ?? 0,
+      slot: effectiveSlot(todayRow ?? undefined, client.slot),
     },
     currentPackRows: cur ? packRows(sessions, cur.id) : [],
     pastPacks,

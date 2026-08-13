@@ -28,6 +28,8 @@ editor (each is idempotent, `add column if not exists`):
   editable slot grid (`slots`, `session_minutes`). Existing trainer rows get the
   default slot list automatically. (The app tolerates this not being run yet for
   reads, but you must run it before editing slots.)
+- [`0003_session_actions.sql`](supabase/migrations/0003_session_actions.sql) —
+  `delay_minutes` for the "running late" nudge.
 
 ## 2. Auth — allow the new domain
 

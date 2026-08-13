@@ -6,7 +6,7 @@ import { MessageCircle, CalendarDays, ArrowRight } from "lucide-react";
 import { Card, Dot, Label } from "@/components/ui";
 import { DateStrip } from "@/components/DateStrip";
 import { CalendarModal } from "@/components/CalendarModal";
-import { T, NUM, slotRangeShort } from "@/lib/theme";
+import { T, NUM, slotRangeShort, shiftSlot } from "@/lib/theme";
 import type { SessionStatus, TodayLedger, TodaySlotEntry } from "@/lib/types";
 
 type Relation = "past" | "today" | "future";
@@ -61,9 +61,15 @@ function Row({
       }}
     >
       <span
-        style={{ width: 88, fontSize: 12.5, fontWeight: 700, color: c ? T.ink : T.faint, ...NUM }}
+        style={{
+          width: 88,
+          fontSize: 12.5,
+          fontWeight: 700,
+          color: entry.delayMinutes > 0 ? T.warn : c ? T.ink : T.faint,
+          ...NUM,
+        }}
       >
-        {slotRangeShort(entry.slot, sessionMinutes)}
+        {slotRangeShort(shiftSlot(entry.slot, entry.delayMinutes), sessionMinutes)}
       </span>
       {c ? (
         <>
@@ -79,6 +85,9 @@ function Row({
               }}
             >
               Session {entry.seq ?? c.nextSeq} of {c.packSize}
+              {entry.delayMinutes > 0 && (
+                <span style={{ color: T.warn }}> · {entry.delayMinutes} late</span>
+              )}
             </div>
           </Link>
           {meta && (

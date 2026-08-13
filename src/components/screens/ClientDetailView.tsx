@@ -5,10 +5,19 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, X, ChevronDown, ChevronUp, Send, Copy } from "lucide-react";
 import { Card, Label, Unit, ProgressBar, PrimaryButton } from "@/components/ui";
-import { T, NUM, FONT, fmtDays, fmtSlot } from "@/lib/theme";
-import { logSessionAction } from "@/app/actions";
+import { T, NUM, FONT, fmtDays, fmtSlot, shiftSlot } from "@/lib/theme";
+import {
+  logSessionAction,
+  setSessionDelayAction,
+  cancelSessionAction,
+} from "@/app/actions";
 import { waLink, clientActionUrl } from "@/lib/wa";
-import { welcomeMessage, confirmationMessage } from "@/lib/templates";
+import {
+  welcomeMessage,
+  confirmationMessage,
+  runningLateMessage,
+  trainerCancelMessage,
+} from "@/lib/templates";
 import type { ClientDetail, HistoryRow, PastPackView } from "@/lib/types";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -116,6 +125,8 @@ export function ClientDetailView({
   const router = useRouter();
   const [stage, setStage] = useState<"due" | "note" | "logged">("due");
   const [note, setNote] = useState("");
+  const [delay, setDelay] = useState(client.todaySession.delayMinutes);
+  const [cancelled, setCancelled] = useState(client.todaySession.status === "cancelled");
   const [pending, startTransition] = useTransition();
 
   const log = (status: "completed" | "no_show", n: string | null) => {
@@ -126,9 +137,49 @@ export function ClientDetailView({
     });
   };
 
+  const nudge = (minutes: number) => {
+    const next = delay + minutes;
+    setDelay(next);
+    startTransition(async () => {
+      await setSessionDelayAction(client.id, next);
+      router.refresh();
+    });
+  };
+  const clearDelay = () => {
+    setDelay(0);
+    startTransition(async () => {
+      await setSessionDelayAction(client.id, 0);
+      router.refresh();
+    });
+  };
+  const cancelToday = () => {
+    setCancelled(true);
+    startTransition(async () => {
+      await cancelSessionAction(client.id);
+      router.refresh();
+    });
+  };
+
   const pct = client.doneInPack / client.packSize;
   const showTodayCard =
-    client.todaySession.scheduled && !client.todaySession.logged && stage !== "logged";
+    client.todaySession.scheduled &&
+    !client.todaySession.logged &&
+    stage !== "logged" &&
+    !cancelled;
+  const shiftedSlot = shiftSlot(client.todaySession.slot, delay);
+  const lateHref = waLink(
+    client.wa_phone,
+    runningLateMessage({
+      clientName: client.name,
+      fromSlot: client.todaySession.slot,
+      toSlot: shiftedSlot,
+      minutes: delay,
+    }),
+  );
+  const cancelHref = waLink(
+    client.wa_phone,
+    trainerCancelMessage({ clientName: client.name, slot: client.todaySession.slot }),
+  );
 
   return (
     <div style={{ padding: "0 20px 24px" }}>
@@ -166,16 +217,57 @@ export function ClientDetailView({
                 marginBottom: 14,
               }}
             >
-              <Label>Today · {fmtSlot(client.slot)}</Label>
+              <Label>Today · {fmtSlot(shiftedSlot)}</Label>
               <span style={{ fontSize: 12, color: T.warn, fontWeight: 700, ...NUM }}>
                 Session {client.nextSeq} of {client.packSize}
               </span>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button
-                onClick={() => setStage("note")}
-                style={actionBtn(T.ink, "#fff")}
+
+            {delay > 0 && (
+              <div
+                style={{
+                  marginBottom: 12,
+                  padding: "11px 13px",
+                  borderRadius: 12,
+                  background: T.page,
+                  border: `1px solid ${T.border}`,
+                }}
               >
+                <div style={{ fontSize: 13, fontWeight: 700, color: T.warn }}>
+                  Running {delay} min late
+                </div>
+                <div style={{ fontSize: 12.5, color: T.gray, marginTop: 2, ...NUM }}>
+                  {fmtSlot(client.todaySession.slot)} → {fmtSlot(shiftedSlot)}
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <a
+                    href={lateHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 6,
+                      background: T.ink,
+                      color: "#fff",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      padding: "8px 14px",
+                      borderRadius: 10,
+                      textDecoration: "none",
+                    }}
+                  >
+                    <Send size={13} /> Send heads-up
+                  </a>
+                  <button onClick={clearDelay} disabled={pending} style={miniBtn()}>
+                    On time
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button onClick={() => setStage("note")} style={actionBtn(T.ink, "#fff")}>
                 ✓ Completed
               </button>
               <button
@@ -186,6 +278,65 @@ export function ClientDetailView({
                 No-show
               </button>
             </div>
+
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginTop: 12,
+                paddingTop: 12,
+                borderTop: `1px solid ${T.rule}`,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12.5, color: T.gray, fontWeight: 600 }}>Running late</span>
+                <button onClick={() => nudge(15)} disabled={pending} style={miniBtn()}>
+                  +15
+                </button>
+                <button onClick={() => nudge(30)} disabled={pending} style={miniBtn()}>
+                  +30
+                </button>
+              </div>
+              <button onClick={cancelToday} disabled={pending} style={miniBtn(T.bad)}>
+                Cancel
+              </button>
+            </div>
+          </Card>
+        )}
+
+        {cancelled && (
+          <Card style={{ borderColor: T.border }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 4, background: T.bad }} />
+              <span style={{ fontSize: 14.5, fontWeight: 700, color: T.bad }}>
+                Today cancelled
+              </span>
+            </div>
+            <div style={{ fontSize: 13, color: T.gray, marginTop: 6, lineHeight: 1.5 }}>
+              It won&apos;t count against {client.name.split(" ")[0]}&apos;s pack.
+            </div>
+            <a
+              href={cancelHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 6,
+                marginTop: 12,
+                padding: "12px 0",
+                borderRadius: 12,
+                background: T.ink,
+                color: "#fff",
+                fontSize: 14,
+                fontWeight: 700,
+                textDecoration: "none",
+              }}
+            >
+              <Send size={15} /> Send apology to {client.name.split(" ")[0]}
+            </a>
           </Card>
         )}
 
@@ -481,6 +632,20 @@ function Stat({
       </div>
     </div>
   );
+}
+
+function miniBtn(color: string = T.ink): React.CSSProperties {
+  return {
+    border: `1px solid ${T.border}`,
+    background: "#fff",
+    color,
+    fontSize: 12.5,
+    fontWeight: 700,
+    padding: "6px 12px",
+    borderRadius: 10,
+    cursor: "pointer",
+    fontFamily: FONT,
+  };
 }
 
 function actionBtn(bg: string, color: string): React.CSSProperties {

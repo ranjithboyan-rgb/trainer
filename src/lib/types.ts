@@ -59,6 +59,7 @@ export interface Session {
   status_changed_at: string;
   reschedule_requested: boolean;
   slot: string | null; // this instance's time; null = client's default slot
+  delay_minutes?: number; // "running late" nudge for this session (0 = on time)
 }
 
 // ── Derived / view models ───────────────────────────────────────────────────
@@ -100,6 +101,8 @@ export interface ClientDetail extends ClientSummary {
     scheduled: boolean;
     status: SessionStatus | null;
     logged: boolean;
+    delayMinutes: number;
+    slot: string; // effective time of today's session
   };
   currentPackRows: HistoryRow[];
   pastPacks: PastPackView[];
@@ -112,6 +115,7 @@ export interface TodaySlotEntry {
   status: SessionStatus | null; // the selected day's session status if any
   seq: number | null; // that session's seq_in_pack, when it exists
   rescheduleRequested: boolean; // client asked to reschedule via their page
+  delayMinutes: number; // "running late" nudge (0 = on time)
 }
 
 export interface TodayLedger {

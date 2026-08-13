@@ -81,3 +81,26 @@ export function noShowMessage(args: { slot: string; counted: boolean }): string 
   const base = `We missed you at ${fmtSlot(args.slot)} today.`;
   return args.counted ? `${base} As it was under 12 hours, it counted as a session.` : base;
 }
+
+// Trainer running late — one-way heads-up, no action needed from the client.
+export function runningLateMessage(args: {
+  clientName: string;
+  fromSlot: string;
+  toSlot: string;
+  minutes: number;
+}): string {
+  const first = args.clientName.split(" ")[0];
+  return (
+    `Hi ${first}! Running about ${args.minutes} min late today — ` +
+    `let's do ${fmtSlot(args.toSlot)} instead of ${fmtSlot(args.fromSlot)}. See you then 💪`
+  );
+}
+
+// Trainer needs to cancel today's session.
+export function trainerCancelMessage(args: { clientName: string; slot: string }): string {
+  const first = args.clientName.split(" ")[0];
+  return (
+    `Hi ${first}, I'm sorry — I have to cancel today's ${fmtSlot(args.slot)} session. ` +
+    `I'll message you to find another time. It won't count against your pack.`
+  );
+}

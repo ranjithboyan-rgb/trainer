@@ -61,6 +61,13 @@ export function slotRangeShort(start: string, minutes: number): string {
   return slotRange(start, minutes).replace(/ ?[AP]M/g, "");
 }
 
+// "10:00" + 15 -> "10:15" (for a running-late nudge).
+export function shiftSlot(start: string, minutes: number): string {
+  const [h, m] = start.split(":").map(Number);
+  const total = ((h * 60 + m + minutes) % 1440 + 1440) % 1440;
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
 // "06:00" -> "6:00 AM"
 export function fmtSlot(hhmm: string): string {
   const [hStr, mStr] = hhmm.split(":");

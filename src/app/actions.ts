@@ -38,6 +38,22 @@ export async function setTodayStatusAction(
   revalidatePath("/today");
 }
 
+export async function setSessionDelayAction(clientId: string, minutes: number): Promise<void> {
+  const repo = await getRepo();
+  if (!repo) throw new Error("Not authenticated");
+  await repo.setSessionDelay(clientId, minutes);
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath("/today");
+}
+
+export async function cancelSessionAction(clientId: string): Promise<void> {
+  const repo = await getRepo();
+  if (!repo) throw new Error("Not authenticated");
+  await repo.cancelSession(clientId);
+  revalidatePath(`/clients/${clientId}`);
+  revalidatePath("/today");
+}
+
 export async function updateTrainerAction(patch: Partial<Trainer>): Promise<void> {
   const repo = await getRepo();
   if (!repo) throw new Error("Not authenticated");

@@ -46,6 +46,8 @@ export interface Repo {
     input: { status: "completed" | "no_show"; note: string | null },
   ): Promise<void>;
   setTodayStatus(clientId: string, status: SessionStatus): Promise<void>;
+  setSessionDelay(clientId: string, minutes: number): Promise<void>;
+  cancelSession(clientId: string): Promise<void>;
 }
 
 // ── Ledger assembly (shared) ────────────────────────────────────────────────
@@ -85,11 +87,19 @@ function assembleToday(
       status,
       seq: session?.seq_in_pack ?? null,
       rescheduleRequested: session?.reschedule_requested ?? false,
+      delayMinutes: session?.delay_minutes ?? 0,
     });
   }
 
   const entryFor = (slot: string): TodaySlotEntry =>
-    placed.get(slot) ?? { slot, client: null, status: null, seq: null, rescheduleRequested: false };
+    placed.get(slot) ?? {
+      slot,
+      client: null,
+      status: null,
+      seq: null,
+      rescheduleRequested: false,
+      delayMinutes: 0,
+    };
 
   // Show the trainer's configured slots, plus any off-grid slot a client
   // actually sits in (e.g. a reschedule), so nobody silently disappears.
@@ -251,6 +261,45 @@ class DemoRepo implements Repo {
       reschedule_requested: false,
       slot: null,
     });
+  }
+  private demoTodayRow(clientId: string): Session {
+    const d = demoData();
+    const day = todayISO();
+    let row = d.sessions.find(
+      (s) => s.client_id === clientId && s.scheduled_for.slice(0, 10) === day,
+    );
+    if (!row) {
+      row = {
+        id: demoId("s"),
+        client_id: clientId,
+        trainer_id: this.trainerId,
+        pack_id: currentPack(d.packs.filter((p) => p.client_id === clientId))?.id ?? null,
+        scheduled_for: day + "T00:00:00.000Z",
+        seq_in_pack: null,
+        status: "scheduled",
+        counted: false,
+        note: null,
+        status_changed_at: new Date().toISOString(),
+        reschedule_requested: false,
+        slot: null,
+        delay_minutes: 0,
+      };
+      d.sessions.push(row);
+    }
+    return row;
+  }
+  async setSessionDelay(clientId: string, minutes: number) {
+    const row = this.demoTodayRow(clientId);
+    row.delay_minutes = Math.max(0, minutes);
+    row.status_changed_at = new Date().toISOString();
+  }
+  async cancelSession(clientId: string) {
+    const row = this.demoTodayRow(clientId);
+    row.status = "cancelled";
+    row.counted = false;
+    row.delay_minutes = 0;
+    row.reschedule_requested = false;
+    row.status_changed_at = new Date().toISOString();
   }
 }
 
@@ -452,6 +501,42 @@ class SupabaseRepo implements Repo {
       pack_id: currentPack((packs ?? []) as Pack[])?.id ?? null,
       scheduled_for: day + "T00:00:00.000Z",
       status,
+    });
+  }
+  // Upsert today's session row and apply a patch (running-late / trainer-cancel).
+  private async patchTodaySession(clientId: string, patch: Record<string, unknown>) {
+    const day = todayISO();
+    const { data: existing } = await this.db
+      .from("trainer_sessions")
+      .select("id")
+      .eq("client_id", clientId)
+      .gte("scheduled_for", day + "T00:00:00Z")
+      .lte("scheduled_for", day + "T23:59:59Z")
+      .maybeSingle();
+    const full = { ...patch, status_changed_at: new Date().toISOString() };
+    if (existing) {
+      await this.db.from("trainer_sessions").update(full).eq("id", (existing as { id: string }).id);
+      return;
+    }
+    const { data: packs } = await this.db.from("trainer_packs").select("*").eq("client_id", clientId);
+    await this.db.from("trainer_sessions").insert({
+      client_id: clientId,
+      trainer_id: this.trainerId,
+      pack_id: currentPack((packs ?? []) as Pack[])?.id ?? null,
+      scheduled_for: day + "T00:00:00.000Z",
+      status: "scheduled",
+      ...full,
+    });
+  }
+  async setSessionDelay(clientId: string, minutes: number) {
+    await this.patchTodaySession(clientId, { delay_minutes: Math.max(0, minutes) });
+  }
+  async cancelSession(clientId: string) {
+    await this.patchTodaySession(clientId, {
+      status: "cancelled",
+      counted: false,
+      delay_minutes: 0,
+      reschedule_requested: false,
     });
   }
 }
