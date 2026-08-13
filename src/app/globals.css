@@ -34,6 +34,19 @@ textarea {
   font-family: inherit;
 }
 
+@keyframes fm-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.fm-shimmer {
+  animation: fm-pulse 1.1s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;

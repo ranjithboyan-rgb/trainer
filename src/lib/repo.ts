@@ -305,13 +305,33 @@ class DemoRepo implements Repo {
 
 // ── SUPABASE backend ────────────────────────────────────────────────────────
 class SupabaseRepo implements Repo {
+  private _trainer?: Promise<Trainer>;
   constructor(
     public trainerId: string,
     private db: Awaited<ReturnType<typeof createSupabaseServer>>,
+    private defaultName = "Trainer",
   ) {}
 
-  async getTrainer() {
-    const { data } = await this.db.from("trainer_profiles").select("*").eq("id", this.trainerId).single();
+  // Memoized per request so the two-or-three getTrainer calls a page makes hit
+  // the DB once. Creates the row on first ever visit (no per-request write).
+  getTrainer() {
+    if (!this._trainer) this._trainer = this.loadTrainer();
+    return this._trainer;
+  }
+  private async loadTrainer(): Promise<Trainer> {
+    let { data } = await this.db
+      .from("trainer_profiles")
+      .select("*")
+      .eq("id", this.trainerId)
+      .maybeSingle();
+    if (!data) {
+      const ins = await this.db
+        .from("trainer_profiles")
+        .insert({ id: this.trainerId, display_name: this.defaultName })
+        .select("*")
+        .single();
+      data = ins.data;
+    }
     const t = data as Trainer;
     // Defensive: tolerate the slots migration not being run yet.
     return {
@@ -321,6 +341,7 @@ class SupabaseRepo implements Repo {
     };
   }
   async updateTrainer(patch: Partial<Trainer>) {
+    this._trainer = undefined; // invalidate the per-request memo
     const { data } = await this.db
       .from("trainer_profiles")
       .update(patch)
@@ -552,15 +573,10 @@ export async function getRepo(): Promise<Repo | null> {
   } = await db.auth.getUser();
   if (!user) return null;
 
-  // Lazily provision the trainer's profile on first visit (replaces an
-  // auth.users trigger, which would collide with the Personal app's). Insert-
-  // or-ignore, so an edited display_name is never overwritten.
+  // Name used only if the trainer row doesn't exist yet — provisioning happens
+  // lazily inside getTrainer (create-if-missing), so there's no write on every
+  // page load.
   const meta = (user.user_metadata ?? {}) as { full_name?: string; name?: string };
-  const displayName =
-    meta.full_name || meta.name || user.email?.split("@")[0] || "Trainer";
-  await db
-    .from("trainer_profiles")
-    .upsert({ id: user.id, display_name: displayName }, { onConflict: "id", ignoreDuplicates: true });
-
-  return new SupabaseRepo(user.id, db);
+  const displayName = meta.full_name || meta.name || user.email?.split("@")[0] || "Trainer";
+  return new SupabaseRepo(user.id, db, displayName);
 }
