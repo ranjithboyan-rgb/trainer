@@ -1,6 +1,6 @@
 {
   "name": "FitMonk Trainer",
-  "short_name": "FitMonk",
+  "short_name": "Trainer",
   "description": "A WhatsApp-native client manager for independent personal trainers.",
   "start_url": "/today",
   "display": "standalone",

@@ -5,6 +5,7 @@ import { X, Minus, Plus } from "lucide-react";
 import { Label, PrimaryButton } from "@/components/ui";
 import { T, NUM, FONT, DAY_SHORT, AM_SLOTS, PM_SLOTS, fmtSlot } from "@/lib/theme";
 import { createClientAction } from "@/app/actions";
+import { normalizePhone } from "@/lib/wa";
 
 export function AddClientSheet({
   packSize,
@@ -31,7 +32,7 @@ export function AddClientSheet({
     startTransition(async () => {
       const id = await createClientAction({
         name: name.trim(),
-        wa_phone: phone.trim(),
+        wa_phone: normalizePhone(phone),
         training_days: days,
         slot: slot!,
         starting_offset: doneAlready,
@@ -144,10 +145,15 @@ export function AddClientSheet({
         <input
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="WhatsApp number (+91…)"
+          placeholder="WhatsApp number"
           inputMode="tel"
-          style={{ ...inputStyle, ...NUM }}
+          style={{ ...inputStyle, marginBottom: 4, ...NUM }}
         />
+        <div style={{ fontSize: 12, color: T.faint, ...NUM, minHeight: 16 }}>
+          {phone.trim()
+            ? `Will send to ${normalizePhone(phone)}`
+            : "10-digit number (India), or +country code"}
+        </div>
 
         <Label style={{ margin: "14px 0 6px" }}>Training days</Label>
         <div style={{ display: "flex", gap: 6 }}>

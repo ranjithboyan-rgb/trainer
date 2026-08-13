@@ -5,7 +5,13 @@ export const metadata: Metadata = {
   title: "FitMonk Trainer",
   description: "A WhatsApp-native client manager for independent personal trainers.",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "FitMonk" },
+  // "Trainer" as the home-screen label so it reads clearly next to the Personal
+  // app's "FitMonk" (F) icon.
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Trainer" },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
