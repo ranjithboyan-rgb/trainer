@@ -198,7 +198,15 @@ export function ClientDetailView({
       >
         <ArrowLeft size={17} /> Clients
       </Link>
-      <div style={{ fontSize: 32, fontWeight: 800, color: T.ink, letterSpacing: "-0.03em" }}>
+      <div
+        style={{
+          fontSize: 32,
+          fontWeight: 800,
+          color: T.ink,
+          letterSpacing: "-0.03em",
+          marginTop: 12,
+        }}
+      >
         {client.name}
       </div>
       <div style={{ fontSize: 13, color: T.gray, margin: "6px 0 18px" }}>
