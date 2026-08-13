@@ -1,0 +1,54 @@
+:root {
+  --ink: #0a0a0a;
+  --gray: #8a8a8e;
+  --faint: #c7c7cc;
+  --border: #e8e8ea;
+  --rule: #f0f0f2;
+  --page: #fafafa;
+  --card: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #e9e9ec;
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Mobile-first app column, centered on wide screens. */
+.app-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--page);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
