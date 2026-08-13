@@ -19,11 +19,13 @@ export function ConfirmationsView({
   dateISO,
   todayISO,
   lateCancelBurns,
+  templates,
 }: {
   rows: Row[];
   dateISO: string;
   todayISO: string;
   lateCancelBurns: boolean;
+  templates: Record<string, string>;
 }) {
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
@@ -73,7 +75,7 @@ export function ConfirmationsView({
 
         {rows.map(({ client, seq }) => {
           const msg = origin
-            ? confirmationMessage({
+            ? confirmationMessage(templates, {
                 clientName: client.name,
                 dateISO,
                 todayISO,

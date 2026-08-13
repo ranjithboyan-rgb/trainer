@@ -271,6 +271,7 @@ const normTrainer = (t: Trainer): Trainer => ({
   ...t,
   slots: t.slots?.length ? t.slots : DEFAULT_SLOTS,
   session_minutes: t.session_minutes || 60,
+  templates: t.templates ?? {},
 });
 
 async function adminLookup(token: string) {

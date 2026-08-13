@@ -24,6 +24,7 @@ export default async function ConfirmationsPage() {
       dateISO={tomorrow}
       todayISO={today}
       lateCancelBurns={trainer.late_cancel_burns}
+      templates={trainer.templates}
     />
   );
 }

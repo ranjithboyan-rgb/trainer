@@ -21,6 +21,7 @@ create table if not exists public.trainer_profiles (
                           array['06:00','07:00','08:00','09:00','10:00',
                                 '17:00','18:00','19:00','20:00','21:00'],
   session_minutes       int  not null default 60,
+  templates             jsonb not null default '{}'::jsonb,
   wa_phone_number_id    text,
   wa_connected          boolean not null default false,
   created_at            timestamptz not null default now()

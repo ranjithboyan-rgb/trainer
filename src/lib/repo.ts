@@ -333,11 +333,12 @@ class SupabaseRepo implements Repo {
       data = ins.data;
     }
     const t = data as Trainer;
-    // Defensive: tolerate the slots migration not being run yet.
+    // Defensive: tolerate the slots/templates migrations not being run yet.
     return {
       ...t,
       slots: t.slots?.length ? t.slots : DEFAULT_SLOTS,
       session_minutes: t.session_minutes || 60,
+      templates: t.templates ?? {},
     };
   }
   async updateTrainer(patch: Partial<Trainer>) {

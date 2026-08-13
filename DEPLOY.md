@@ -30,6 +30,8 @@ editor (each is idempotent, `add column if not exists`):
   reads, but you must run it before editing slots.)
 - [`0003_session_actions.sql`](supabase/migrations/0003_session_actions.sql) —
   `delay_minutes` for the "running late" nudge.
+- [`0004_templates.sql`](supabase/migrations/0004_templates.sql) — `templates`
+  (editable message templates).
 
 ## 2. Auth — allow the new domain
 

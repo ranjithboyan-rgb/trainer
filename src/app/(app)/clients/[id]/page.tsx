@@ -19,6 +19,7 @@ export default async function ClientPage({
       client={client}
       trainerName={trainer.display_name}
       lateCancelBurns={trainer.late_cancel_burns}
+      templates={trainer.templates}
     />
   );
 }

@@ -1,11 +1,13 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { X, Plus } from "lucide-react";
+import { X, Plus, ChevronRight } from "lucide-react";
 import { Card, Dot, Label, PageHeader, Toggle } from "@/components/ui";
 import { T, NUM, FONT, fmtSlot, slotRange } from "@/lib/theme";
 import { updateTrainerAction, signOutAction } from "@/app/actions";
 import { EditProfileSheet } from "@/components/EditProfileSheet";
+import { TemplateEditorSheet } from "@/components/TemplateEditorSheet";
+import { TEMPLATES, DEFAULT_TEMPLATE, render, type TemplateKey } from "@/lib/templates";
 import type { Trainer } from "@/lib/types";
 
 function StepBtn({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
@@ -80,7 +82,23 @@ export function SettingsView({
   const [slots, setSlots] = useState<string[]>([...trainer.slots].sort());
   const [sessionMins, setSessionMins] = useState(trainer.session_minutes);
   const [newSlot, setNewSlot] = useState("");
+  const [templates, setTemplates] = useState<Record<string, string>>(trainer.templates ?? {});
+  const [editingTpl, setEditingTpl] = useState<TemplateKey | null>(null);
   const [, startTransition] = useTransition();
+
+  const saveTemplate = (key: TemplateKey, text: string) => {
+    const next = { ...templates, [key]: text };
+    setTemplates(next);
+    setEditingTpl(null);
+    persist({ templates: next });
+  };
+  const resetTemplate = (key: TemplateKey) => {
+    const next = { ...templates };
+    delete next[key];
+    setTemplates(next);
+    setEditingTpl(null);
+    persist({ templates: next });
+  };
 
   const persist = (patch: Partial<Trainer>) =>
     startTransition(() => {
@@ -315,6 +333,56 @@ export function SettingsView({
           </div>
         </Card>
 
+        {/* Editable message templates */}
+        <Card>
+          <Label style={{ marginBottom: 8 }}>Message templates</Label>
+          {TEMPLATES.map((def, i) => {
+            const current = templates[def.key]?.trim() ? templates[def.key] : DEFAULT_TEMPLATE[def.key];
+            const customized = !!templates[def.key]?.trim();
+            return (
+              <button
+                key={def.key}
+                onClick={() => setEditingTpl(def.key)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12,
+                  width: "100%",
+                  textAlign: "left",
+                  border: "none",
+                  background: "none",
+                  cursor: "pointer",
+                  padding: "13px 0",
+                  borderTop: i === 0 ? "none" : `1px solid ${T.rule}`,
+                  fontFamily: FONT,
+                }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 600, color: T.ink }}>
+                    {def.label}
+                    {customized && (
+                      <span style={{ fontSize: 11.5, fontWeight: 600, color: T.faint }}> · edited</span>
+                    )}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: 12.5,
+                      color: T.faint,
+                      marginTop: 3,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {render(current, def.sample)}
+                  </div>
+                </div>
+                <ChevronRight size={16} color={T.faint} style={{ flexShrink: 0 }} />
+              </button>
+            );
+          })}
+        </Card>
+
         <Card>
           <Label style={{ marginBottom: 8 }}>WhatsApp automation</Label>
           <Row
@@ -373,6 +441,20 @@ export function SettingsView({
       </div>
 
       {editing && <EditProfileSheet trainer={trainer} onClose={() => setEditing(false)} />}
+
+      {editingTpl &&
+        (() => {
+          const def = TEMPLATES.find((t) => t.key === editingTpl)!;
+          return (
+            <TemplateEditorSheet
+              def={def}
+              current={templates[def.key] ?? ""}
+              onSave={(text) => saveTemplate(def.key, text)}
+              onReset={() => resetTemplate(def.key)}
+              onClose={() => setEditingTpl(null)}
+            />
+          );
+        })()}
     </div>
   );
 }

@@ -61,6 +61,7 @@ export function buildSeed(now = new Date()): Dataset {
     sessions_per_pack: 12,
     slots: DEFAULT_SLOTS,
     session_minutes: 60,
+    templates: {},
     wa_phone_number_id: null,
     wa_connected: false,
   };

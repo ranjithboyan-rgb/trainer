@@ -117,10 +117,12 @@ export function ClientDetailView({
   client,
   trainerName,
   lateCancelBurns,
+  templates,
 }: {
   client: ClientDetail;
   trainerName: string;
   lateCancelBurns: boolean;
+  templates: Record<string, string>;
 }) {
   const router = useRouter();
   const [stage, setStage] = useState<"due" | "note" | "logged">("due");
@@ -169,7 +171,7 @@ export function ClientDetailView({
   const shiftedSlot = shiftSlot(client.todaySession.slot, delay);
   const lateHref = waLink(
     client.wa_phone,
-    runningLateMessage({
+    runningLateMessage(templates, {
       clientName: client.name,
       fromSlot: client.todaySession.slot,
       toSlot: shiftedSlot,
@@ -178,7 +180,7 @@ export function ClientDetailView({
   );
   const cancelHref = waLink(
     client.wa_phone,
-    trainerCancelMessage({ clientName: client.name, slot: client.todaySession.slot }),
+    trainerCancelMessage(templates, { clientName: client.name, slot: client.todaySession.slot }),
   );
 
   return (
@@ -440,6 +442,7 @@ export function ClientDetailView({
           client={client}
           trainerName={trainerName}
           lateCancelBurns={lateCancelBurns}
+          templates={templates}
         />
 
         {/* History grouped by pack */}
@@ -510,10 +513,12 @@ function ClientMessageCard({
   client,
   trainerName,
   lateCancelBurns,
+  templates,
 }: {
   client: ClientDetail;
   trainerName: string;
   lateCancelBurns: boolean;
+  templates: Record<string, string>;
 }) {
   const [origin, setOrigin] = useState("");
   const [copied, setCopied] = useState(false);
@@ -525,7 +530,7 @@ function ClientMessageCard({
   const welcomeHref = link
     ? waLink(
         client.wa_phone,
-        welcomeMessage({
+        welcomeMessage(templates, {
           trainerName,
           clientName: client.name,
           trainingDays: client.training_days,
@@ -539,7 +544,7 @@ function ClientMessageCard({
     link && client.nextDateISO
       ? waLink(
           client.wa_phone,
-          confirmationMessage({
+          confirmationMessage(templates, {
             clientName: client.name,
             dateISO: client.nextDateISO,
             todayISO: today,
