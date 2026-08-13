@@ -18,7 +18,7 @@ import {
   todayISO,
   TERMINAL,
 } from "./domain";
-import { fmtSlot } from "./theme";
+import { fmtSlot, DEFAULT_SLOTS } from "./theme";
 import { relativeDay } from "./templates";
 import { isDemo } from "./config";
 import { buildSeed, type Dataset } from "./seed";
@@ -265,6 +265,13 @@ function demoLookup(token: string) {
 const hhmm = (s: string | null | undefined): string | null => (s ? s.slice(0, 5) : null);
 const normClient = (c: Client): Client => ({ ...c, slot: hhmm(c.slot) ?? c.slot });
 const normSession = (s: Session): Session => ({ ...s, slot: hhmm(s.slot) });
+// Same defensive defaults as the authed path — reschedule reads trainer.slots,
+// so it must never be undefined even if the slots migration hasn't run yet.
+const normTrainer = (t: Trainer): Trainer => ({
+  ...t,
+  slots: t.slots?.length ? t.slots : DEFAULT_SLOTS,
+  session_minutes: t.session_minutes || 60,
+});
 
 async function adminLookup(token: string) {
   const db = createAdminClient();
@@ -288,7 +295,7 @@ async function adminLookup(token: string) {
     client: c,
     packs: (packs.data ?? []) as Pack[],
     sessions: allSessions.filter((s) => s.client_id === c.id),
-    trainer: trainer.data as Trainer,
+    trainer: normTrainer(trainer.data as Trainer),
     roster: ((roster.data ?? []) as Client[]).map(normClient),
     rosterSessions: byClient(allSessions),
   };
