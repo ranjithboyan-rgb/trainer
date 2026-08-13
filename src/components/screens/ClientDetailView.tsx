@@ -390,7 +390,7 @@ export function ClientDetailView({
             }}
           >
             <Label>Client since</Label>
-            <span style={{ fontSize: 14, fontWeight: 700, color: T.ink, ...NUM }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: T.gray, ...NUM }}>
               {monthDay(client.client_since)} · {monthsSince(client.client_since)}
             </span>
           </div>
