@@ -5,7 +5,13 @@
 
 import { fmtSlot, fmtDays, DAY_ABBR } from "./theme";
 
-export type TemplateKey = "welcome" | "confirmation" | "runningLate" | "cancel";
+export type TemplateKey =
+  | "welcome"
+  | "confirmation"
+  | "reminder"
+  | "renewal"
+  | "runningLate"
+  | "cancel";
 export type TemplateMap = Record<string, string>;
 
 // "today" / "tomorrow" / "Wed" — lowercase for mid-sentence use.
@@ -35,6 +41,10 @@ export const DEFAULT_TEMPLATE: Record<TemplateKey, string> = {
   // way to change it.
   confirmation:
     "Hi {name}! You're confirmed for {when}, {time} — session {seq} of {size}. {ending} {policy} Need to reschedule or cancel? Tap here: {link}",
+  reminder:
+    "Hi {name}! Reminder — session {seq} of {size} today at {time}. See you then 💪 Need to reschedule or cancel? Tap here: {link}",
+  renewal:
+    "Hi {name}! You've only got {left} session(s) left in your current pack — let's line up a renewal whenever's convenient and we'll keep going 💪",
   runningLate:
     "Hi {name}! Running about {minutes} min late today — let's do {newtime} instead of {time}. See you then 💪",
   cancel:
@@ -102,6 +112,29 @@ export const TEMPLATES: TemplateDef[] = [
     },
   },
   {
+    key: "reminder",
+    label: "Session reminder",
+    hint: "A same-day nudge before the session.",
+    vars: [
+      { token: "{name}", label: "Client's first name" },
+      { token: "{seq}", label: "Session number" },
+      { token: "{size}", label: "Sessions in the pack" },
+      { token: "{time}", label: "Session time" },
+      { token: "{link}", label: "Their action link" },
+    ],
+    sample: { name: "Ravi", seq: "9", size: "12", time: "6:00 AM", link: LINK_SAMPLE },
+  },
+  {
+    key: "renewal",
+    label: "Pack renewal",
+    hint: "A heads-up when the pack is nearly done.",
+    vars: [
+      { token: "{name}", label: "Client's first name" },
+      { token: "{left}", label: "Sessions left in the pack" },
+    ],
+    sample: { name: "Ravi", left: "2" },
+  },
+  {
     key: "runningLate",
     label: "Running late",
     hint: "The heads-up when you tap +15 / +30.",
@@ -162,6 +195,29 @@ export function confirmationMessage(
     ending: packEndNote(args.seq, args.packSize),
     policy: args.lateCancelBurns ? "Cancelling under 12 hours counts as a session." : "",
     link: args.link,
+  });
+}
+
+export function reminderMessage(
+  templates: TemplateMap | undefined,
+  args: { clientName: string; slot: string; seq: number; packSize: number; link: string },
+): string {
+  return render(pick(templates, "reminder"), {
+    name: args.clientName.split(" ")[0],
+    seq: String(args.seq),
+    size: String(args.packSize),
+    time: fmtSlot(args.slot),
+    link: args.link,
+  });
+}
+
+export function renewalMessage(
+  templates: TemplateMap | undefined,
+  args: { clientName: string; left: number },
+): string {
+  return render(pick(templates, "renewal"), {
+    name: args.clientName.split(" ")[0],
+    left: String(args.left),
   });
 }
 

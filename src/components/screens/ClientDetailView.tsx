@@ -15,6 +15,8 @@ import { waLink, clientActionUrl } from "@/lib/wa";
 import {
   welcomeMessage,
   confirmationMessage,
+  reminderMessage,
+  renewalMessage,
   runningLateMessage,
   trainerCancelMessage,
 } from "@/lib/templates";
@@ -557,6 +559,28 @@ function ClientMessageCard({
         )
       : "";
 
+  const reminderHref =
+    link && client.nextDateISO
+      ? waLink(
+          client.wa_phone,
+          reminderMessage(templates, {
+            clientName: client.name,
+            slot: client.slot,
+            seq: client.nextSeq,
+            packSize: client.packSize,
+            link,
+          }),
+        )
+      : "";
+
+  const renewalHref = waLink(
+    client.wa_phone,
+    renewalMessage(templates, {
+      clientName: client.name,
+      left: Math.max(0, client.packSize - client.doneInPack),
+    }),
+  );
+
   const copy = () => {
     if (!link) return;
     void navigator.clipboard?.writeText(link).then(() => {
@@ -568,14 +592,22 @@ function ClientMessageCard({
   return (
     <Card>
       <Label style={{ marginBottom: 12 }}>Message {client.name.split(" ")[0]}</Label>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
         {client.nextDateISO && (
           <SendLink href={confirmHref} primary>
-            <Send size={15} /> Send confirmation
+            <Send size={14} /> Confirmation
+          </SendLink>
+        )}
+        {client.nextDateISO && (
+          <SendLink href={reminderHref}>
+            <Send size={14} /> Reminder
           </SendLink>
         )}
         <SendLink href={welcomeHref}>
-          <Send size={15} /> Send welcome
+          <Send size={14} /> Welcome
+        </SendLink>
+        <SendLink href={renewalHref}>
+          <Send size={14} /> Renewal
         </SendLink>
       </div>
       <button
