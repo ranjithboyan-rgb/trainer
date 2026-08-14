@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MessageCircle, CalendarDays, ArrowRight } from "lucide-react";
+import { MessageCircle, CalendarDays, ArrowRight, Send } from "lucide-react";
 import { Card, Dot, Label } from "@/components/ui";
 import { DateStrip } from "@/components/DateStrip";
 import { CalendarModal } from "@/components/CalendarModal";
 import { T, NUM, slotRangeShort, shiftSlot, sessionCode } from "@/lib/theme";
+import { confirmationMessage } from "@/lib/templates";
+import { waLink, clientActionUrl } from "@/lib/wa";
 import type { SessionStatus, TodayLedger, TodaySlotEntry } from "@/lib/types";
 
 type Relation = "past" | "today" | "future";
@@ -27,8 +29,9 @@ function statusMeta(status: SessionStatus | null, rel: Relation): [string, strin
       return [T.warn, "Rescheduled"];
     case "scheduled":
     default:
-      // No explicit action recorded — meaning depends on when we're looking.
-      if (rel === "today") return [T.warn, "Awaiting reply"];
+      // No client action yet. Confirmation is the default, so today shows no
+      // "awaiting" label (a Send-confirmation shortcut takes that spot instead).
+      if (rel === "today") return null;
       if (rel === "future") return [T.faint, "Scheduled"];
       return [T.faint, "No record"];
   }
@@ -39,11 +42,13 @@ function Row({
   first,
   rel,
   sessionMinutes,
+  sendHref,
 }: {
   entry: TodaySlotEntry;
   first: boolean;
   rel: Relation;
   sessionMinutes: number;
+  sendHref: string;
 }) {
   const c = entry.client;
   const meta = c
@@ -51,6 +56,9 @@ function Row({
       ? ([T.warn, "Reschedule?"] as [string, string])
       : statusMeta(entry.status, rel)
     : null;
+  // Today + not yet acted → a quick Send-confirmation shortcut in the slot.
+  const canSend =
+    !!c && rel === "today" && entry.status === "scheduled" && !entry.rescheduleRequested && !!sendHref;
   return (
     <div
       style={{
@@ -92,21 +100,46 @@ function Row({
               )}
             </div>
           </Link>
-          {meta && (
-            <span
+          {canSend ? (
+            <a
+              href={sendHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              aria-label="Send confirmation"
               style={{
                 marginLeft: "auto",
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 5,
+                padding: "7px 12px",
+                borderRadius: 10,
+                background: T.ink,
+                color: "#fff",
                 fontSize: 12,
-                fontWeight: 600,
-                color: meta[0],
+                fontWeight: 700,
+                textDecoration: "none",
               }}
             >
-              <Dot c={meta[0]} />
-              {meta[1]}
-            </span>
+              <Send size={13} /> Send
+            </a>
+          ) : (
+            meta && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: meta[0],
+                }}
+              >
+                <Dot c={meta[0]} />
+                {meta[1]}
+              </span>
+            )
           )}
         </>
       ) : (
@@ -133,6 +166,8 @@ export function TodayView({
   todayISO,
   activeDates,
   sessionMinutes,
+  templates,
+  lateCancelBurns,
 }: {
   ledger: TodayLedger;
   confirmTime: string;
@@ -140,9 +175,31 @@ export function TodayView({
   todayISO: string;
   activeDates: string[];
   sessionMinutes: number;
+  templates: Record<string, string>;
+  lateCancelBurns: boolean;
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [origin, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
   const isToday = selectedISO === todayISO;
+
+  const sendHref = (e: TodaySlotEntry): string => {
+    if (!e.client || !origin) return "";
+    const c = e.client;
+    return waLink(
+      c.wa_phone,
+      confirmationMessage(templates, {
+        clientName: c.name,
+        dateISO: selectedISO,
+        todayISO,
+        slot: e.slot,
+        seq: e.seq ?? c.nextSeq,
+        packSize: c.packSize,
+        lateCancelBurns,
+        link: clientActionUrl(origin, c.public_token),
+      }),
+    );
+  };
   const rel: Relation = isToday ? "today" : selectedISO < todayISO ? "past" : "future";
   const d = new Date(selectedISO + "T00:00:00");
   const dateline = d.toLocaleDateString("en-US", {
@@ -200,7 +257,7 @@ export function TodayView({
           <Card>
             <Label style={{ marginBottom: 4 }}>Morning slots</Label>
             {ledger.morning.map((e, i) => (
-              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} />
+              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} sendHref={sendHref(e)} />
             ))}
           </Card>
         )}
@@ -208,7 +265,7 @@ export function TodayView({
           <Card>
             <Label style={{ marginBottom: 4 }}>Evening slots</Label>
             {ledger.evening.map((e, i) => (
-              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} />
+              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} sendHref={sendHref(e)} />
             ))}
           </Card>
         )}

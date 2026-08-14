@@ -43,6 +43,8 @@ export default async function TodayPage({
       todayISO={today}
       activeDates={activeDates}
       sessionMinutes={trainer.session_minutes}
+      templates={trainer.templates}
+      lateCancelBurns={trainer.late_cancel_burns}
     />
   );
 }
