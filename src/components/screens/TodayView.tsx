@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { MessageCircle, CalendarDays, ArrowRight, Send } from "lucide-react";
+import { MessageCircle, CalendarDays, ArrowRight, Send, Plus } from "lucide-react";
 import { Card, Dot, Label } from "@/components/ui";
 import { DateStrip } from "@/components/DateStrip";
 import { CalendarModal } from "@/components/CalendarModal";
+import { AddSessionSheet } from "@/components/AddSessionSheet";
 import { T, NUM, slotRangeShort, shiftSlot, sessionCode } from "@/lib/theme";
 import { confirmationMessage } from "@/lib/templates";
 import { waLink, clientActionUrl } from "@/lib/wa";
-import type { SessionStatus, TodayLedger, TodaySlotEntry } from "@/lib/types";
+import type { ClientSummary, SessionStatus, TodayLedger, TodaySlotEntry } from "@/lib/types";
 
 type Relation = "past" | "today" | "future";
 
@@ -43,12 +44,14 @@ function Row({
   rel,
   sessionMinutes,
   sendHref,
+  onAdd,
 }: {
   entry: TodaySlotEntry;
   first: boolean;
   rel: Relation;
   sessionMinutes: number;
   sendHref: string;
+  onAdd?: (slot: string) => void;
 }) {
   const c = entry.client;
   const meta = c
@@ -142,6 +145,34 @@ function Row({
             )
           )}
         </>
+      ) : onAdd ? (
+        <button
+          onClick={() => onAdd(entry.slot)}
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            border: "none",
+            background: "none",
+            padding: 0,
+            cursor: "pointer",
+          }}
+        >
+          <span style={{ fontSize: 13.5, color: T.faint, fontWeight: 500 }}>Open slot</span>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: T.ink,
+            }}
+          >
+            <Plus size={14} /> Add
+          </span>
+        </button>
       ) : (
         <span style={{ fontSize: 13.5, color: T.faint, fontWeight: 500 }}>Open slot</span>
       )}
@@ -168,6 +199,7 @@ export function TodayView({
   sessionMinutes,
   templates,
   lateCancelBurns,
+  clients,
 }: {
   ledger: TodayLedger;
   confirmTime: string;
@@ -177,8 +209,10 @@ export function TodayView({
   sessionMinutes: number;
   templates: Record<string, string>;
   lateCancelBurns: boolean;
+  clients: ClientSummary[];
 }) {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [addSlot, setAddSlot] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const isToday = selectedISO === todayISO;
@@ -201,6 +235,16 @@ export function TodayView({
     );
   };
   const rel: Relation = isToday ? "today" : selectedISO < todayISO ? "past" : "future";
+
+  // Only plan into today or the future. Offer clients who aren't already on the
+  // day, so the trainer can't double-book someone.
+  const canPlan = rel !== "past";
+  const placedIds = new Set(
+    [...ledger.morning, ...ledger.evening].filter((e) => e.client).map((e) => e.client!.id),
+  );
+  const availableClients = clients.filter((c) => !placedIds.has(c.id));
+  const onAdd = canPlan ? (slot: string) => setAddSlot(slot) : undefined;
+
   const d = new Date(selectedISO + "T00:00:00");
   const dateline = d.toLocaleDateString("en-US", {
     weekday: "long",
@@ -257,7 +301,7 @@ export function TodayView({
           <Card>
             <Label style={{ marginBottom: 4 }}>Morning slots</Label>
             {ledger.morning.map((e, i) => (
-              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} sendHref={sendHref(e)} />
+              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} sendHref={sendHref(e)} onAdd={onAdd} />
             ))}
           </Card>
         )}
@@ -265,7 +309,7 @@ export function TodayView({
           <Card>
             <Label style={{ marginBottom: 4 }}>Evening slots</Label>
             {ledger.evening.map((e, i) => (
-              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} sendHref={sendHref(e)} />
+              <Row key={e.slot} entry={e} first={i === 0} rel={rel} sessionMinutes={sessionMinutes} sendHref={sendHref(e)} onAdd={onAdd} />
             ))}
           </Card>
         )}
@@ -295,6 +339,15 @@ export function TodayView({
           todayISO={todayISO}
           activeDates={activeDates}
           onClose={() => setCalendarOpen(false)}
+        />
+      )}
+
+      {addSlot && (
+        <AddSessionSheet
+          dateISO={selectedISO}
+          slot={addSlot}
+          clients={availableClients}
+          onClose={() => setAddSlot(null)}
         />
       )}
     </div>

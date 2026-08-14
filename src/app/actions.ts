@@ -54,6 +54,18 @@ export async function cancelSessionAction(clientId: string): Promise<void> {
   revalidatePath("/today");
 }
 
+export async function scheduleSessionAction(
+  clientId: string,
+  dateISO: string,
+  slot: string,
+): Promise<void> {
+  const repo = await getRepo();
+  if (!repo) throw new Error("Not authenticated");
+  await repo.scheduleSession(clientId, dateISO, slot);
+  revalidatePath("/today");
+  revalidatePath(`/clients/${clientId}`);
+}
+
 export async function updateTrainerAction(patch: Partial<Trainer>): Promise<void> {
   const repo = await getRepo();
   if (!repo) throw new Error("Not authenticated");

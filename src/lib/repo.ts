@@ -48,6 +48,8 @@ export interface Repo {
   setTodayStatus(clientId: string, status: SessionStatus): Promise<void>;
   setSessionDelay(clientId: string, minutes: number): Promise<void>;
   cancelSession(clientId: string): Promise<void>;
+  // Place a client into a (date, slot) the trainer picked — ad-hoc planning.
+  scheduleSession(clientId: string, dateISO: string, slot: string): Promise<void>;
 }
 
 // ── Ledger assembly (shared) ────────────────────────────────────────────────
@@ -300,6 +302,34 @@ class DemoRepo implements Repo {
     row.delay_minutes = 0;
     row.reschedule_requested = false;
     row.status_changed_at = new Date().toISOString();
+  }
+  async scheduleSession(clientId: string, dateISO: string, slot: string) {
+    const d = demoData();
+    const existing = d.sessions.find(
+      (s) => s.client_id === clientId && s.scheduled_for.slice(0, 10) === dateISO,
+    );
+    if (existing) {
+      existing.slot = slot;
+      existing.status = "scheduled";
+      existing.reschedule_requested = false;
+      existing.status_changed_at = new Date().toISOString();
+      return;
+    }
+    d.sessions.push({
+      id: demoId("s"),
+      client_id: clientId,
+      trainer_id: this.trainerId,
+      pack_id: currentPack(d.packs.filter((p) => p.client_id === clientId))?.id ?? null,
+      scheduled_for: dateISO + "T00:00:00.000Z",
+      seq_in_pack: null,
+      status: "scheduled",
+      counted: false,
+      note: null,
+      status_changed_at: new Date().toISOString(),
+      reschedule_requested: false,
+      slot,
+      delay_minutes: 0,
+    });
   }
 }
 
@@ -559,6 +589,32 @@ class SupabaseRepo implements Repo {
       counted: false,
       delay_minutes: 0,
       reschedule_requested: false,
+    });
+  }
+  async scheduleSession(clientId: string, dateISO: string, slot: string) {
+    const { data: existing } = await this.db
+      .from("trainer_sessions")
+      .select("id")
+      .eq("client_id", clientId)
+      .gte("scheduled_for", dateISO + "T00:00:00Z")
+      .lte("scheduled_for", dateISO + "T23:59:59Z")
+      .maybeSingle();
+    const now = new Date().toISOString();
+    if (existing) {
+      await this.db
+        .from("trainer_sessions")
+        .update({ slot, status: "scheduled", reschedule_requested: false, status_changed_at: now })
+        .eq("id", (existing as { id: string }).id);
+      return;
+    }
+    const { data: packs } = await this.db.from("trainer_packs").select("*").eq("client_id", clientId);
+    await this.db.from("trainer_sessions").insert({
+      client_id: clientId,
+      trainer_id: this.trainerId,
+      pack_id: currentPack((packs ?? []) as Pack[])?.id ?? null,
+      scheduled_for: dateISO + "T00:00:00.000Z",
+      slot,
+      status: "scheduled",
     });
   }
 }

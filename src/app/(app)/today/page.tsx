@@ -28,10 +28,11 @@ export default async function TodayPage({
   const today = todayISO();
   const selected = resolveDate(date, today);
 
-  const [ledger, trainer, activeDates] = await Promise.all([
+  const [ledger, trainer, activeDates, clients] = await Promise.all([
     repo.getLedger(selected),
     repo.getTrainer(),
     repo.getSessionDates(shiftISO(today, -370), shiftISO(today, 45)),
+    repo.listClients(),
   ]);
   const confirmTime = fmtSlot(trainer.confirm_send_time.slice(0, 5));
 
@@ -45,6 +46,7 @@ export default async function TodayPage({
       sessionMinutes={trainer.session_minutes}
       templates={trainer.templates}
       lateCancelBurns={trainer.late_cancel_burns}
+      clients={clients}
     />
   );
 }
