@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { X } from "lucide-react";
+import { X, UserPlus } from "lucide-react";
 import { Label } from "@/components/ui";
 import { T, NUM, fmtSlot, sessionCode } from "@/lib/theme";
 import { scheduleSessionAction } from "@/app/actions";
@@ -18,12 +18,14 @@ export function AddSessionSheet({
   slot,
   clients,
   movable,
+  onNewClient,
   onClose,
 }: {
   dateISO: string;
   slot: string;
   clients: ClientSummary[];
   movable: MovableClient[];
+  onNewClient: () => void;
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -163,6 +165,29 @@ export function AddSessionSheet({
             </div>
           </>
         )}
+
+        <button
+          onClick={onNewClient}
+          disabled={pending}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            width: "100%",
+            marginTop: 14,
+            padding: "13px 0",
+            borderRadius: 13,
+            border: `1px solid ${T.border}`,
+            background: "#fff",
+            color: T.ink,
+            fontSize: 14.5,
+            fontWeight: 700,
+            cursor: pending ? "default" : "pointer",
+          }}
+        >
+          <UserPlus size={16} /> New client
+        </button>
       </div>
     </div>
   );

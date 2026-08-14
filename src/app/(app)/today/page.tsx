@@ -47,6 +47,8 @@ export default async function TodayPage({
       templates={trainer.templates}
       lateCancelBurns={trainer.late_cancel_burns}
       clients={clients}
+      slots={trainer.slots}
+      packSize={trainer.sessions_per_pack}
     />
   );
 }

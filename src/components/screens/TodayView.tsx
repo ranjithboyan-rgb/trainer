@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MessageCircle, CalendarDays, ArrowRight, Send, Plus } from "lucide-react";
 import { Card, Dot, Label } from "@/components/ui";
 import { DateStrip } from "@/components/DateStrip";
 import { CalendarModal } from "@/components/CalendarModal";
 import { AddSessionSheet } from "@/components/AddSessionSheet";
+import { AddClientSheet } from "@/components/AddClientSheet";
+import { scheduleSessionAction } from "@/app/actions";
 import { T, NUM, slotRangeShort, shiftSlot, sessionCode } from "@/lib/theme";
 import { confirmationMessage } from "@/lib/templates";
 import { waLink, clientActionUrl } from "@/lib/wa";
@@ -200,6 +203,8 @@ export function TodayView({
   templates,
   lateCancelBurns,
   clients,
+  slots,
+  packSize,
 }: {
   ledger: TodayLedger;
   confirmTime: string;
@@ -210,9 +215,14 @@ export function TodayView({
   templates: Record<string, string>;
   lateCancelBurns: boolean;
   clients: ClientSummary[];
+  slots: string[];
+  packSize: number;
 }) {
+  const router = useRouter();
+  const [, startTransition] = useTransition();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [addSlot, setAddSlot] = useState<string | null>(null);
+  const [newClientSlot, setNewClientSlot] = useState<string | null>(null);
   const [origin, setOrigin] = useState("");
   useEffect(() => setOrigin(window.location.origin), []);
   const isToday = selectedISO === todayISO;
@@ -352,7 +362,28 @@ export function TodayView({
           slot={addSlot}
           clients={availableClients}
           movable={movable.filter((m) => m.fromSlot !== addSlot)}
+          onNewClient={() => {
+            setNewClientSlot(addSlot);
+            setAddSlot(null);
+          }}
           onClose={() => setAddSlot(null)}
+        />
+      )}
+
+      {newClientSlot && (
+        <AddClientSheet
+          packSize={packSize}
+          slots={slots}
+          initialSlot={newClientSlot}
+          onClose={() => setNewClientSlot(null)}
+          onCreated={(id) => {
+            const slot = newClientSlot;
+            setNewClientSlot(null);
+            startTransition(async () => {
+              await scheduleSessionAction(id, selectedISO, slot);
+              router.refresh();
+            });
+          }}
         />
       )}
     </div>

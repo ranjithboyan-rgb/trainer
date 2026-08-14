@@ -10,11 +10,13 @@ import { normalizePhone } from "@/lib/wa";
 export function AddClientSheet({
   packSize,
   slots,
+  initialSlot = null,
   onClose,
   onCreated,
 }: {
   packSize: number;
   slots: string[];
+  initialSlot?: string | null;
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
@@ -22,7 +24,7 @@ export function AddClientSheet({
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [days, setDays] = useState<number[]>([1, 3, 5]);
-  const [slot, setSlot] = useState<string | null>(null);
+  const [slot, setSlot] = useState<string | null>(initialSlot);
   const [doneAlready, setDoneAlready] = useState(0);
   const [pending, startTransition] = useTransition();
 
