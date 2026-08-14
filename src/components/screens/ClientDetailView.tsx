@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, X, ChevronDown, ChevronUp, Send, Copy } from "lucide-react";
 import { Card, Label, Unit, ProgressBar, PrimaryButton } from "@/components/ui";
-import { T, NUM, FONT, fmtDays, fmtSlot, shiftSlot } from "@/lib/theme";
+import { T, NUM, FONT, fmtDays, fmtSlot, shiftSlot, sessionCode } from "@/lib/theme";
 import {
   logSessionAction,
   setSessionDelayAction,
@@ -218,7 +218,7 @@ export function ClientDetailView({
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {/* Today's session */}
         {showTodayCard && stage === "due" && (
-          <Card style={{ borderColor: T.ink }}>
+          <Card>
             <div
               style={{
                 display: "flex",
@@ -229,7 +229,7 @@ export function ClientDetailView({
             >
               <Label>Today · {fmtSlot(shiftedSlot)}</Label>
               <span style={{ fontSize: 12, color: T.warn, fontWeight: 700, ...NUM }}>
-                Session {client.nextSeq} of {client.packSize}
+                {sessionCode(client.packNumber, client.nextSeq)} of {client.packSize}
               </span>
             </div>
 
@@ -351,7 +351,7 @@ export function ClientDetailView({
         )}
 
         {showTodayCard && stage === "note" && (
-          <Card style={{ borderColor: T.ink }}>
+          <Card>
             <Label style={{ marginBottom: 12 }}>What did the session cover? · optional</Label>
             <textarea
               value={note}
@@ -376,7 +376,7 @@ export function ClientDetailView({
               onClick={() => log("completed", note.trim() || "Session done")}
               style={{ marginTop: 10 }}
             >
-              {pending ? "Saving…" : `Save session ${client.nextSeq} of ${client.packSize}`}
+              {pending ? "Saving…" : `Save ${sessionCode(client.packNumber, client.nextSeq)} of ${client.packSize}`}
             </PrimaryButton>
           </Card>
         )}
@@ -388,7 +388,7 @@ export function ClientDetailView({
               display: "flex",
               justifyContent: "space-between",
               alignItems: "baseline",
-              marginBottom: 16,
+              marginBottom: 20,
             }}
           >
             <Label>Client since</Label>
@@ -568,14 +568,14 @@ function ClientMessageCard({
   return (
     <Card>
       <Label style={{ marginBottom: 12 }}>Message {client.name.split(" ")[0]}</Label>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {client.nextDateISO && (
           <SendLink href={confirmHref} primary>
             <Send size={15} /> Send confirmation
           </SendLink>
         )}
         <SendLink href={welcomeHref}>
-          <Send size={15} /> Welcome
+          <Send size={15} /> Send welcome
         </SendLink>
       </div>
       <button
@@ -634,7 +634,7 @@ function Stat({
 }) {
   return (
     <div>
-      <div style={{ fontSize: 22, fontWeight: 800, color }}>
+      <div style={{ fontSize: 20, fontWeight: 800, color }}>
         {value}
         {unit && <Unit>{unit}</Unit>}
       </div>

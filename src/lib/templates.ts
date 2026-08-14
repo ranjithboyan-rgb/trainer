@@ -29,9 +29,12 @@ function packEndNote(seq: number, size: number): string {
 // ── The default copy ────────────────────────────────────────────────────────
 export const DEFAULT_TEMPLATE: Record<TemplateKey, string> = {
   welcome:
-    "Hi {name}! {trainer} runs your training sessions here now. Your schedule: {days} at {time}. You'll get a note the evening before each session — confirm or make changes here: {link}",
+    "Hi {name}! {trainer} runs your training sessions here now. Your schedule: {days} at {time}. You'll get a heads-up before each session — to reschedule or cancel one, use this link anytime: {link}",
+  // Confirmation is by default — the client doesn't tap to confirm; opening the
+  // link confirms them. So the message states it's confirmed and only offers a
+  // way to change it.
   confirmation:
-    "Hi {name}! {when}, {time} — session {seq} of {size}. {ending} {policy} Confirm or make changes: {link}",
+    "Hi {name}! You're confirmed for {when}, {time} — session {seq} of {size}. {ending} {policy} Need to reschedule or cancel? Tap here: {link}",
   runningLate:
     "Hi {name}! Running about {minutes} min late today — let's do {newtime} instead of {time}. See you then 💪",
   cancel:

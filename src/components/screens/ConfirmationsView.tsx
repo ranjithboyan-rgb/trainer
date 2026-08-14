@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, Send } from "lucide-react";
 import { Card, Label } from "@/components/ui";
-import { T, NUM, fmtSlot } from "@/lib/theme";
+import { T, NUM, fmtSlot, sessionCode } from "@/lib/theme";
 import { confirmationMessage } from "@/lib/templates";
 import { waLink, clientActionUrl } from "@/lib/wa";
 import type { ClientSummary } from "@/lib/types";
@@ -53,7 +53,15 @@ export function ConfirmationsView({
       >
         <ArrowLeft size={17} /> Today
       </Link>
-      <div style={{ fontSize: 32, fontWeight: 800, color: T.ink, letterSpacing: "-0.03em" }}>
+      <div
+        style={{
+          fontSize: 32,
+          fontWeight: 800,
+          color: T.ink,
+          letterSpacing: "-0.03em",
+          marginTop: 12,
+        }}
+      >
         Confirmations
       </div>
       <div style={{ fontSize: 13, color: T.gray, margin: "6px 0 8px" }}>
@@ -92,7 +100,8 @@ export function ConfirmationsView({
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>{client.name}</div>
                   <div style={{ fontSize: 12.5, color: T.gray, marginTop: 4, ...NUM }}>
-                    {fmtSlot(client.slot)} · session {seq} of {client.packSize}
+                    {fmtSlot(client.slot)} · {sessionCode(client.packNumber, seq)} of{" "}
+                    {client.packSize}
                   </div>
                 </div>
                 <a

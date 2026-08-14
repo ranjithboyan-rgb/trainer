@@ -56,9 +56,17 @@ export function slotRange(start: string, minutes: number): string {
   return `${startTxt} – ${fmtSlot(end)}`;
 }
 
-// Compact range for tight rows (no AM/PM — morning/evening grouping implies it).
+// Compact range for tight rows (no AM/PM, tight dash — morning/evening grouping
+// implies AM/PM).
 export function slotRangeShort(start: string, minutes: number): string {
-  return slotRange(start, minutes).replace(/ ?[AP]M/g, "");
+  return slotRange(start, minutes)
+    .replace(/ ?[AP]M/g, "")
+    .replace(" – ", "–");
+}
+
+// Pack-session code: pack 1, session 7 -> "01-07".
+export function sessionCode(packNumber: number, seq: number): string {
+  return `${String(packNumber).padStart(2, "0")}-${String(seq).padStart(2, "0")}`;
 }
 
 // "10:00" + 15 -> "10:15" (for a running-late nudge).
