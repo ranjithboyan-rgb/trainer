@@ -237,12 +237,16 @@ export function TodayView({
   const rel: Relation = isToday ? "today" : selectedISO < todayISO ? "past" : "future";
 
   // Only plan into today or the future. Offer clients who aren't already on the
-  // day, so the trainer can't double-book someone.
+  // day (to add), plus anyone already booked with a still-open session (to move
+  // into the tapped slot) — moving vacates their old slot, so no double-booking.
   const canPlan = rel !== "past";
-  const placedIds = new Set(
-    [...ledger.morning, ...ledger.evening].filter((e) => e.client).map((e) => e.client!.id),
-  );
+  const entries = [...ledger.morning, ...ledger.evening];
+  const placedIds = new Set(entries.filter((e) => e.client).map((e) => e.client!.id));
   const availableClients = clients.filter((c) => !placedIds.has(c.id));
+  const OPEN_STATUSES: (SessionStatus | null)[] = ["scheduled", "confirmed"];
+  const movable = entries
+    .filter((e) => e.client && OPEN_STATUSES.includes(e.status))
+    .map((e) => ({ client: e.client!, fromSlot: e.slot }));
   const onAdd = canPlan ? (slot: string) => setAddSlot(slot) : undefined;
 
   const d = new Date(selectedISO + "T00:00:00");
@@ -347,6 +351,7 @@ export function TodayView({
           dateISO={selectedISO}
           slot={addSlot}
           clients={availableClients}
+          movable={movable.filter((m) => m.fromSlot !== addSlot)}
           onClose={() => setAddSlot(null)}
         />
       )}
