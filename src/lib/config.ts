@@ -12,3 +12,11 @@ export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 export const isDemo = !isSupabaseConfigured;
 
 export const DEMO_TRAINER_ID = "00000000-0000-0000-0000-000000000001";
+
+// Emails allowed into the /hub admin overview. Defaults to the platform owner
+// so the hub works with no extra config; override in Vercel with a
+// comma-separated HUB_ADMIN_EMAILS to add or change admins.
+export const HUB_ADMIN_EMAILS = (process.env.HUB_ADMIN_EMAILS ?? "ranjithboyan@gmail.com")
+  .split(",")
+  .map((s) => s.trim().toLowerCase())
+  .filter(Boolean);
