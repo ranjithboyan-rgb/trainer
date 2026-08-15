@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check, X, ChevronDown, ChevronUp, Send, Copy } from "lucide-react";
 import { Card, Label, Unit, ProgressBar, PrimaryButton } from "@/components/ui";
-import { T, NUM, FONT, fmtDays, fmtSlot, shiftSlot, sessionCode } from "@/lib/theme";
+import { T, NUM, FONT, fmtSlot, fmtSchedule, shiftSlot, sessionCode } from "@/lib/theme";
 import {
   logSessionAction,
   setSessionDelayAction,
@@ -214,7 +214,7 @@ export function ClientDetailView({
         {client.name}
       </div>
       <div style={{ fontSize: 13, color: T.gray, margin: "6px 0 18px" }}>
-        {fmtDays(client.training_days)} — {fmtSlot(client.slot)}
+        {fmtSchedule(client.training_days, client.slot)}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card, Label, PageHeader } from "@/components/ui";
 import { AddClientSheet } from "@/components/AddClientSheet";
-import { T, NUM, fmtDays, fmtSlot } from "@/lib/theme";
+import { T, NUM, fmtSchedule } from "@/lib/theme";
 import type { ClientSummary } from "@/lib/types";
 
 export function ClientsView({
@@ -39,7 +39,7 @@ export function ClientsView({
                 <div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: T.ink }}>{c.name}</div>
                   <div style={{ fontSize: 12.5, color: T.gray, marginTop: 4 }}>
-                    {fmtDays(c.training_days)} — {fmtSlot(c.slot)}
+                    {fmtSchedule(c.training_days, c.slot)}
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>

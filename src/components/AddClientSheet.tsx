@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { X, Minus, Plus } from "lucide-react";
-import { Label, PrimaryButton } from "@/components/ui";
+import { Label, PrimaryButton, Toggle } from "@/components/ui";
 import { T, NUM, FONT, DAY_SHORT, fmtSlot, splitSlots } from "@/lib/theme";
 import { createClientAction } from "@/app/actions";
 import { normalizePhone } from "@/lib/wa";
@@ -11,12 +11,14 @@ export function AddClientSheet({
   packSize,
   slots,
   initialSlot = null,
+  allowTrial = false,
   onClose,
   onCreated,
 }: {
   packSize: number;
   slots: string[];
   initialSlot?: string | null;
+  allowTrial?: boolean;
   onClose: () => void;
   onCreated: (id: string) => void;
 }) {
@@ -26,11 +28,13 @@ export function AddClientSheet({
   const [days, setDays] = useState<number[]>([1, 3, 5]);
   const [slot, setSlot] = useState<string | null>(initialSlot);
   const [doneAlready, setDoneAlready] = useState(0);
+  const [trial, setTrial] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const toggleDay = (i: number) =>
     setDays((d) => (d.includes(i) ? d.filter((x) => x !== i) : [...d, i]));
-  const ok = name.trim() && phone.trim() && days.length > 0 && slot;
+  // A trial books only the one session (no weekly schedule) into the tapped slot.
+  const ok = name.trim() && phone.trim() && slot && (trial || days.length > 0);
 
   const submit = () => {
     if (!ok || pending) return;
@@ -38,9 +42,9 @@ export function AddClientSheet({
       const id = await createClientAction({
         name: name.trim(),
         wa_phone: normalizePhone(phone),
-        training_days: days,
+        training_days: trial ? [] : days,
         slot: slot!,
-        starting_offset: doneAlready,
+        starting_offset: trial ? 0 : doneAlready,
       });
       onCreated(id);
     });
@@ -160,6 +164,28 @@ export function AddClientSheet({
             : "10-digit number (India), or +country code"}
         </div>
 
+        {allowTrial && (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 12,
+              margin: "16px 0 2px",
+            }}
+          >
+            <div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: T.ink }}>Just a trial</div>
+              <div style={{ fontSize: 12, color: T.faint, marginTop: 2, ...NUM }}>
+                One-off{initialSlot ? ` at ${fmtSlot(initialSlot)}` : ""} — no weekly schedule
+              </div>
+            </div>
+            <Toggle on={trial} onChange={() => setTrial((t) => !t)} />
+          </div>
+        )}
+
+        {!trial && (
+          <>
         <Label style={{ margin: "14px 0 6px" }}>Training days</Label>
         <div style={{ display: "flex", gap: 6 }}>
           {DAY_SHORT.map((d, i) => {
@@ -227,11 +253,15 @@ export function AddClientSheet({
         <div style={{ fontSize: 12, color: T.faint, marginTop: 6, lineHeight: 1.5 }}>
           For existing clients mid-pack — their next session will be number {doneAlready + 1}.
         </div>
+          </>
+        )}
 
         <PrimaryButton disabled={!ok || pending} onClick={submit} style={{ marginTop: 16 }}>
           {pending
             ? "Adding…"
-            : `Add client${doneAlready > 0 ? ` · starts at ${doneAlready}/${packSize}` : ""}`}
+            : trial
+              ? "Add trial session"
+              : `Add client${doneAlready > 0 ? ` · starts at ${doneAlready}/${packSize}` : ""}`}
         </PrimaryButton>
       </div>
     </div>

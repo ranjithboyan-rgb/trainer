@@ -375,6 +375,7 @@ export function TodayView({
           packSize={packSize}
           slots={slots}
           initialSlot={newClientSlot}
+          allowTrial
           onClose={() => setNewClientSlot(null)}
           onCreated={(id) => {
             const slot = newClientSlot;

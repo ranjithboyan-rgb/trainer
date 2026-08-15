@@ -96,3 +96,9 @@ export function fmtDays(days: number[]): string {
     .map((d) => DAY_ABBR[d])
     .join(" · ");
 }
+
+// The one-line schedule for a client. No recurring days = a one-off / trial
+// client who only appears via explicitly booked sessions.
+export function fmtSchedule(days: number[], slot: string): string {
+  return days.length === 0 ? `One-off · ${fmtSlot(slot)}` : `${fmtDays(days)} — ${fmtSlot(slot)}`;
+}
